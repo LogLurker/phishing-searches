@@ -1,0 +1,20 @@
+from mail.proofpoint.pod.message
+where 
+    lower(split(msg__normalizedHeader__from_str, "@", 1)) = "{{entity_sourceDomain}}"  // Replace with the sender domain you're investigating
+group by lower(split(msg__normalizedHeader__from_str, "@", 1)) as sender_domain  // Grouping by the sender's domain
+select
+    count() as total_emails,  // Total number of emails from the sender domain
+    round(hllppcount(msg__normalizedHeader__to_str)) as distinct_recipients,  // Count of distinct recipients
+    collectdistinct(msg__normalizedHeader__subject_str) as distinct_subjects,  // List of distinct email subjects
+    count(msgParts__urls_str) as total_urls_detected,  // Total number of URLs detected
+    round(hllppcount(msgParts__urls_str)) as distinct_urls,  // Count of distinct URLs
+    round(hllppcount(msgParts__sha256_str)) as distinct_attachments,  // Count of distinct attachments based on SHA-256
+    avg(filter__modules__spam__scores__overall) as avg_spam_score,  // Average spam score
+    collectdistinct(msgParts__sandboxStatus_str) as sandbox_statuses,  // Sandbox analysis results
+    first(eventdate) as first_seen,  // Timestamp of the first email detected
+    last(eventdate) as last_seen,  // Timestamp of the most recent email
+    collectdistinct(connection__ip) as sender_ips,  // List of distinct sender IPs
+    collectdistinct(connection__country) as sender_countries,  // List of distinct countries for the sender IPs
+    collectdistinct(filter__modules__spf__result) as spf_results,  // Summary of SPF results
+    collectdistinct(filter__modules__dkimv__result_str) as dkim_results,  // Summary of DKIM results
+    collectdistinct(filter__modules__dmarc__authResults__result_str) as dmarc_results  // Summary of DMARC results
